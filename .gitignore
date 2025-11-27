@@ -38,9 +38,15 @@ env/
 Thumbs.db
 
 # Output files
-charts/
+output_charts/
 *.html
 !sample_data.json
 
+# Keep Python chart modules
+!charts/
+
 # Jupyter
 .ipynb_checkpoints/
+
+# Streamlit
+.streamlit/secrets.toml

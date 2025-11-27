@@ -1,6 +1,14 @@
+# Core dependencies
 pandas>=2.0.0
 numpy>=1.24.0
 plotly>=5.18.0
+
+# Streamlit web app
+streamlit>=1.28.0
+
+# Visualization (for CLI tool)
 matplotlib>=3.7.0
 seaborn>=0.12.0
+
+# PNG export (optional)
 kaleido>=0.2.1
