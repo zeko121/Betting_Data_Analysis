@@ -1,0 +1,352 @@
+[
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "store_id": "store-001",
+    "user_id": "user-001",
+    "data": {
+      "id": "bet-001",
+      "type": "casino",
+      "amount": 2.00,
+      "payout": 34.00,
+      "payoutMultiplier": 17.0,
+      "currency": "usdt",
+      "gameName": "plinko",
+      "createdAt": 1732356000000,
+      "mobile": false,
+      "statePlinko": {"risk": "high", "rows": 16, "result": [1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1]}
+    },
+    "created_at": "2025-11-23T10:00:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567891",
+    "store_id": "store-001",
+    "user_id": "user-001",
+    "data": {
+      "id": "bet-002",
+      "type": "casino",
+      "amount": 1.50,
+      "payout": 0,
+      "payoutMultiplier": 0,
+      "currency": "usdt",
+      "gameName": "plinko",
+      "createdAt": 1732356060000,
+      "mobile": false,
+      "statePlinko": {"risk": "high", "rows": 16, "result": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}
+    },
+    "created_at": "2025-11-23T10:01:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567892",
+    "store_id": "store-001",
+    "user_id": "user-001",
+    "data": {
+      "id": "bet-003",
+      "type": "casino",
+      "amount": 3.00,
+      "payout": 6.30,
+      "payoutMultiplier": 2.1,
+      "currency": "usdt",
+      "gameName": "plinko",
+      "createdAt": 1732356120000,
+      "mobile": false,
+      "statePlinko": {"risk": "medium", "rows": 12, "result": [1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]}
+    },
+    "created_at": "2025-11-23T10:02:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567893",
+    "store_id": "store-001",
+    "user_id": "user-001",
+    "data": {
+      "id": "bet-004",
+      "type": "casino",
+      "amount": 5.00,
+      "payout": 15.00,
+      "payoutMultiplier": 3.0,
+      "currency": "usdt",
+      "gameName": "keno",
+      "createdAt": 1732356180000,
+      "mobile": false,
+      "stateKeno": {"risk": "high", "drawnNumbers": [3, 7, 12, 23, 31, 35, 38, 40, 5, 18], "selectedNumbers": [3, 7, 12, 23]}
+    },
+    "created_at": "2025-11-23T10:03:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567894",
+    "store_id": "store-001",
+    "user_id": "user-001",
+    "data": {
+      "id": "bet-005",
+      "type": "casino",
+      "amount": 2.50,
+      "payout": 0,
+      "payoutMultiplier": 0,
+      "currency": "usdt",
+      "gameName": "keno",
+      "createdAt": 1732356240000,
+      "mobile": false,
+      "stateKeno": {"risk": "medium", "drawnNumbers": [1, 4, 9, 15, 22, 28, 33, 37, 39, 2], "selectedNumbers": [5, 10, 20, 30]}
+    },
+    "created_at": "2025-11-23T10:04:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567895",
+    "store_id": "store-001",
+    "user_id": "user-001",
+    "data": {
+      "id": "bet-006",
+      "type": "casino",
+      "amount": 1.00,
+      "payout": 1.98,
+      "payoutMultiplier": 1.98,
+      "currency": "usdt",
+      "gameName": "Flip",
+      "createdAt": 1732356300000,
+      "mobile": true
+    },
+    "created_at": "2025-11-23T10:05:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567896",
+    "store_id": "store-001",
+    "user_id": "user-001",
+    "data": {
+      "id": "bet-007",
+      "type": "casino",
+      "amount": 1.00,
+      "payout": 0,
+      "payoutMultiplier": 0,
+      "currency": "usdt",
+      "gameName": "Flip",
+      "createdAt": 1732356360000,
+      "mobile": true
+    },
+    "created_at": "2025-11-23T10:06:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567897",
+    "store_id": "store-001",
+    "user_id": "user-001",
+    "data": {
+      "id": "bet-008",
+      "type": "casino",
+      "amount": 10.00,
+      "payout": 130.00,
+      "payoutMultiplier": 13.0,
+      "currency": "usdt",
+      "gameName": "plinko",
+      "createdAt": 1732442400000,
+      "mobile": false,
+      "statePlinko": {"risk": "high", "rows": 16, "result": [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]}
+    },
+    "created_at": "2025-11-24T10:00:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567898",
+    "store_id": "store-001",
+    "user_id": "user-001",
+    "data": {
+      "id": "bet-009",
+      "type": "casino",
+      "amount": 5.00,
+      "payout": 0,
+      "payoutMultiplier": 0,
+      "currency": "usdt",
+      "gameName": "plinko",
+      "createdAt": 1732442460000,
+      "mobile": false,
+      "statePlinko": {"risk": "high", "rows": 16, "result": [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1]}
+    },
+    "created_at": "2025-11-24T10:01:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567899",
+    "store_id": "store-001",
+    "user_id": "user-001",
+    "data": {
+      "id": "bet-010",
+      "type": "casino",
+      "amount": 20.00,
+      "payout": 42.00,
+      "payoutMultiplier": 2.1,
+      "currency": "usdt",
+      "gameName": "keno",
+      "createdAt": 1732442520000,
+      "mobile": false,
+      "stateKeno": {"risk": "low", "drawnNumbers": [2, 5, 8, 11, 14, 17, 20, 23, 26, 29], "selectedNumbers": [2, 5, 8, 11, 14, 17]}
+    },
+    "created_at": "2025-11-24T10:02:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567900",
+    "store_id": "store-001",
+    "user_id": "user-001",
+    "data": {
+      "id": "bet-011",
+      "type": "casino",
+      "amount": 2.00,
+      "payout": 3.96,
+      "payoutMultiplier": 1.98,
+      "currency": "usdt",
+      "gameName": "Flip",
+      "createdAt": 1732528800000,
+      "mobile": false
+    },
+    "created_at": "2025-11-25T10:00:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567901",
+    "store_id": "store-001",
+    "user_id": "user-001",
+    "data": {
+      "id": "bet-012",
+      "type": "casino",
+      "amount": 5.00,
+      "payout": 0,
+      "payoutMultiplier": 0,
+      "currency": "usdt",
+      "gameName": "plinko",
+      "createdAt": 1732528860000,
+      "mobile": false,
+      "statePlinko": {"risk": "low", "rows": 8, "result": [0, 0, 0, 0, 0, 0, 0, 0]}
+    },
+    "created_at": "2025-11-25T10:01:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567902",
+    "store_id": "store-001",
+    "user_id": "user-001",
+    "data": {
+      "id": "bet-013",
+      "type": "casino",
+      "amount": 3.00,
+      "payout": 6.00,
+      "payoutMultiplier": 2.0,
+      "currency": "usdt",
+      "gameName": "dice",
+      "createdAt": 1732528920000,
+      "mobile": false
+    },
+    "created_at": "2025-11-25T10:02:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567903",
+    "store_id": "store-001",
+    "user_id": "user-001",
+    "data": {
+      "id": "bet-014",
+      "type": "casino",
+      "amount": 3.00,
+      "payout": 0,
+      "payoutMultiplier": 0,
+      "currency": "usdt",
+      "gameName": "dice",
+      "createdAt": 1732528980000,
+      "mobile": false
+    },
+    "created_at": "2025-11-25T10:03:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567904",
+    "store_id": "store-001",
+    "user_id": "user-001",
+    "data": {
+      "id": "bet-015",
+      "type": "casino",
+      "amount": 1.00,
+      "payout": 55.00,
+      "payoutMultiplier": 55.0,
+      "currency": "usdt",
+      "gameName": "plinko",
+      "createdAt": 1732615200000,
+      "mobile": false,
+      "statePlinko": {"risk": "high", "rows": 16, "result": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]}
+    },
+    "created_at": "2025-11-26T10:00:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567905",
+    "store_id": "store-001",
+    "user_id": "user-001",
+    "data": {
+      "id": "bet-016",
+      "type": "casino",
+      "amount": 2.00,
+      "payout": 0,
+      "payoutMultiplier": 0,
+      "currency": "usdt",
+      "gameName": "limbo",
+      "createdAt": 1732615260000,
+      "mobile": false
+    },
+    "created_at": "2025-11-26T10:01:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567906",
+    "store_id": "store-001",
+    "user_id": "user-001",
+    "data": {
+      "id": "bet-017",
+      "type": "casino",
+      "amount": 2.00,
+      "payout": 4.00,
+      "payoutMultiplier": 2.0,
+      "currency": "usdt",
+      "gameName": "limbo",
+      "createdAt": 1732615320000,
+      "mobile": false
+    },
+    "created_at": "2025-11-26T10:02:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567907",
+    "store_id": "store-001",
+    "user_id": "user-001",
+    "data": {
+      "id": "bet-018",
+      "type": "casino",
+      "amount": 5.00,
+      "payout": 10.50,
+      "payoutMultiplier": 2.1,
+      "currency": "usdt",
+      "gameName": "mines",
+      "createdAt": 1732615380000,
+      "mobile": false
+    },
+    "created_at": "2025-11-26T10:03:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567908",
+    "store_id": "store-001",
+    "user_id": "user-001",
+    "data": {
+      "id": "bet-019",
+      "type": "casino",
+      "amount": 5.00,
+      "payout": 0,
+      "payoutMultiplier": 0,
+      "currency": "usdt",
+      "gameName": "mines",
+      "createdAt": 1732615440000,
+      "mobile": false
+    },
+    "created_at": "2025-11-26T10:04:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567909",
+    "store_id": "store-001",
+    "user_id": "user-001",
+    "data": {
+      "id": "bet-020",
+      "type": "sportsbook",
+      "amount": 25.00,
+      "payout": 47.50,
+      "payoutMultiplier": 1.9,
+      "currency": "usdt",
+      "gameName": "sportsbook",
+      "createdAt": 1732615500000,
+      "mobile": false
+    },
+    "created_at": "2025-11-26T10:05:00.000Z"
+  }
+]
