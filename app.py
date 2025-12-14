@@ -15,6 +15,13 @@ from datetime import datetime, timedelta
 from utils.data_loader import load_json_data, preprocess_data, apply_filters
 from utils.calculations import calculate_statistics, get_session_data
 from utils.insights import generate_insights, get_alert_insights
+from utils.wallet import (
+    load_wallet_csv,
+    calculate_usd_values,
+    calculate_wallet_summary,
+    create_wallet_charts,
+    STABLECOINS,
+)
 
 # Import charts
 from charts.financial import (
@@ -181,6 +188,13 @@ if 'stats' not in st.session_state:
     st.session_state.stats = None
 if 'file_info' not in st.session_state:
     st.session_state.file_info = None
+# Wallet session state
+if 'deposits_df' not in st.session_state:
+    st.session_state.deposits_df = None
+if 'withdrawals_df' not in st.session_state:
+    st.session_state.withdrawals_df = None
+if 'wallet_summary' not in st.session_state:
+    st.session_state.wallet_summary = None
 
 
 # =============================================================================
@@ -393,12 +407,13 @@ if st.session_state.df is not None and len(st.session_state.df) > 0:
     # TABS
     # =========================================================================
 
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "📊 Overview",
         "🎮 Games",
         "⏰ Behavior",
         "⚠️ Risk",
-        "📋 Data"
+        "📋 Data",
+        "💰 Wallet"
     ])
 
     # -------------------------------------------------------------------------
@@ -680,6 +695,240 @@ if st.session_state.df is not None and len(st.session_state.df) > 0:
                 "betting_stats.csv",
                 "text/csv",
             )
+
+    # -------------------------------------------------------------------------
+    # WALLET TAB
+    # -------------------------------------------------------------------------
+
+    with tab6:
+        st.subheader("💰 Deposits & Withdrawals Analysis")
+
+        st.markdown("""
+        Upload your deposit and withdrawal CSV files to calculate your total profit
+        with accurate historical crypto prices.
+
+        **Supported currencies:** USDT, USDC, BUSD, DAI (stablecoins = 1:1 USD),
+        plus BTC, ETH, DOGE, SOL, and 40+ other cryptocurrencies with historical price lookup.
+        """)
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("##### 📥 Deposits CSV")
+            deposits_file = st.file_uploader(
+                "Upload deposits file",
+                type=['csv'],
+                key='deposits_uploader',
+                help="CSV with columns: date, amount, currency, hash, address"
+            )
+
+        with col2:
+            st.markdown("##### 📤 Withdrawals CSV")
+            withdrawals_file = st.file_uploader(
+                "Upload withdrawals file",
+                type=['csv'],
+                key='withdrawals_uploader',
+                help="CSV with columns: date, amount, currency, hash, address"
+            )
+
+        # Process uploaded files
+        if deposits_file or withdrawals_file:
+            st.markdown("---")
+
+            # Load deposits
+            if deposits_file:
+                try:
+                    deposits_df = load_wallet_csv(deposits_file.read())
+                    st.success(f"✅ Loaded {len(deposits_df)} deposits")
+                except Exception as e:
+                    st.error(f"Error loading deposits: {e}")
+                    deposits_df = pd.DataFrame()
+            else:
+                deposits_df = pd.DataFrame()
+
+            # Load withdrawals
+            if withdrawals_file:
+                try:
+                    withdrawals_file.seek(0)  # Reset file pointer
+                    withdrawals_df = load_wallet_csv(withdrawals_file.read())
+                    st.success(f"✅ Loaded {len(withdrawals_df)} withdrawals")
+                except Exception as e:
+                    st.error(f"Error loading withdrawals: {e}")
+                    withdrawals_df = pd.DataFrame()
+            else:
+                withdrawals_df = pd.DataFrame()
+
+            # Calculate USD values button
+            if len(deposits_df) > 0 or len(withdrawals_df) > 0:
+                st.markdown("---")
+
+                # Show currencies detected
+                all_currencies = set()
+                if len(deposits_df) > 0:
+                    all_currencies.update(deposits_df['currency'].unique())
+                if len(withdrawals_df) > 0:
+                    all_currencies.update(withdrawals_df['currency'].unique())
+
+                stablecoins_found = all_currencies & STABLECOINS
+                volatile_found = all_currencies - STABLECOINS
+
+                col1, col2 = st.columns(2)
+                with col1:
+                    if stablecoins_found:
+                        st.info(f"**Stablecoins (1:1 USD):** {', '.join(sorted(stablecoins_found))}")
+                with col2:
+                    if volatile_found:
+                        st.warning(f"**Volatile (need price lookup):** {', '.join(sorted(volatile_found))}")
+
+                st.markdown("---")
+
+                if st.button("🔄 Calculate USD Values", type="primary", use_container_width=True):
+                    with st.spinner("Fetching historical crypto prices... This may take a moment."):
+                        progress_bar = st.progress(0)
+
+                        def update_progress(pct):
+                            progress_bar.progress(pct)
+
+                        # Calculate USD values for deposits
+                        if len(deposits_df) > 0:
+                            st.text("Processing deposits...")
+                            deposits_df = calculate_usd_values(deposits_df, update_progress)
+                            st.session_state.deposits_df = deposits_df
+
+                        # Calculate USD values for withdrawals
+                        if len(withdrawals_df) > 0:
+                            st.text("Processing withdrawals...")
+                            withdrawals_df = calculate_usd_values(withdrawals_df, update_progress)
+                            st.session_state.withdrawals_df = withdrawals_df
+
+                        progress_bar.empty()
+                        st.success("✅ USD values calculated!")
+
+                        # Calculate summary
+                        if len(deposits_df) > 0 or len(withdrawals_df) > 0:
+                            if len(deposits_df) == 0:
+                                deposits_df = pd.DataFrame({'usd_value': [], 'timestamp': []})
+                            if len(withdrawals_df) == 0:
+                                withdrawals_df = pd.DataFrame({'usd_value': [], 'timestamp': []})
+
+                            st.session_state.wallet_summary = calculate_wallet_summary(
+                                deposits_df, withdrawals_df
+                            )
+
+        # Display results if we have processed data
+        if st.session_state.wallet_summary is not None:
+            summary = st.session_state.wallet_summary
+            deposits_df = st.session_state.deposits_df
+            withdrawals_df = st.session_state.withdrawals_df
+
+            st.markdown("---")
+            st.subheader("📊 Wallet Summary")
+
+            # Summary metrics
+            col1, col2, col3, col4 = st.columns(4)
+
+            with col1:
+                render_metric_card(
+                    "Total Deposits",
+                    format_currency(summary.get('total_deposits_usd', 0)),
+                    f"{summary.get('total_deposit_count', 0)} transactions",
+                    "loss"  # Red for money going in
+                )
+
+            with col2:
+                render_metric_card(
+                    "Total Withdrawals",
+                    format_currency(summary.get('total_withdrawals_usd', 0)),
+                    f"{summary.get('total_withdrawal_count', 0)} transactions",
+                    "profit"  # Green for money coming out
+                )
+
+            with col3:
+                net_profit = summary.get('net_profit_usd', 0)
+                render_metric_card(
+                    "Net Profit",
+                    format_profit(net_profit),
+                    f"ROI: {summary.get('roi_percentage', 0):+.1f}%",
+                    "profit" if net_profit >= 0 else "loss"
+                )
+
+            with col4:
+                missing = summary.get('missing_prices', 0)
+                if missing > 0:
+                    st.warning(f"⚠️ {missing} transactions have missing prices")
+                else:
+                    st.success("✅ All prices found")
+
+            # Charts
+            if len(deposits_df) > 0 or len(withdrawals_df) > 0:
+                charts = create_wallet_charts(
+                    deposits_df if deposits_df is not None else pd.DataFrame(),
+                    withdrawals_df if withdrawals_df is not None else pd.DataFrame(),
+                    summary
+                )
+
+                # ROI Gauge
+                if 'gauge' in charts:
+                    st.plotly_chart(charts['gauge'], use_container_width=True)
+
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    if 'timeline' in charts:
+                        st.plotly_chart(charts['timeline'], use_container_width=True)
+
+                with col2:
+                    if 'breakdown' in charts:
+                        st.plotly_chart(charts['breakdown'], use_container_width=True)
+
+                if 'cumulative' in charts:
+                    st.plotly_chart(charts['cumulative'], use_container_width=True)
+
+            # Detailed tables
+            st.markdown("---")
+            st.subheader("📋 Transaction Details")
+
+            detail_tab1, detail_tab2 = st.tabs(["Deposits", "Withdrawals"])
+
+            with detail_tab1:
+                if deposits_df is not None and len(deposits_df) > 0:
+                    display_cols = ['timestamp', 'amount', 'currency', 'price_at_time', 'usd_value', 'price_source']
+                    available_cols = [c for c in display_cols if c in deposits_df.columns]
+                    display_df = deposits_df[available_cols].copy()
+                    display_df['timestamp'] = pd.to_datetime(display_df['timestamp']).dt.strftime('%Y-%m-%d %H:%M')
+
+                    st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+                    # Download button
+                    csv = deposits_df.to_csv(index=False)
+                    st.download_button(
+                        "📥 Download Deposits with USD Values",
+                        csv,
+                        "deposits_with_usd.csv",
+                        "text/csv"
+                    )
+                else:
+                    st.info("No deposits data loaded")
+
+            with detail_tab2:
+                if withdrawals_df is not None and len(withdrawals_df) > 0:
+                    display_cols = ['timestamp', 'amount', 'currency', 'price_at_time', 'usd_value', 'price_source']
+                    available_cols = [c for c in display_cols if c in withdrawals_df.columns]
+                    display_df = withdrawals_df[available_cols].copy()
+                    display_df['timestamp'] = pd.to_datetime(display_df['timestamp']).dt.strftime('%Y-%m-%d %H:%M')
+
+                    st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+                    # Download button
+                    csv = withdrawals_df.to_csv(index=False)
+                    st.download_button(
+                        "📥 Download Withdrawals with USD Values",
+                        csv,
+                        "withdrawals_with_usd.csv",
+                        "text/csv"
+                    )
+                else:
+                    st.info("No withdrawals data loaded")
 
 else:
     # =========================================================================
