@@ -179,13 +179,14 @@ def get_coingecko_id(currency: str) -> Optional[str]:
     return COINGECKO_IDS.get(currency_lower)
 
 
-def calculate_usd_values(df: pd.DataFrame, progress_callback=None) -> pd.DataFrame:
+def calculate_usd_values(df: pd.DataFrame, progress_callback=None, status_callback=None) -> pd.DataFrame:
     """
     Calculate USD values for all transactions.
 
     Args:
         df: DataFrame with wallet transactions
-        progress_callback: Optional callback for progress updates
+        progress_callback: Optional callback for progress bar updates (0-1)
+        status_callback: Optional callback for status text updates
 
     Returns:
         DataFrame with USD values added
@@ -200,16 +201,22 @@ def calculate_usd_values(df: pd.DataFrame, progress_callback=None) -> pd.DataFra
     total_txs = len(df)
     processed = 0
 
+    if status_callback:
+        status_callback(f"📊 Processing {total_txs} transactions across {len(currencies)} currencies...")
+
     for currency in currencies:
         mask = df['currency'] == currency
         currency_txs = df[mask]
+        num_txs = len(currency_txs)
 
         if currency in STABLECOINS:
             # Stablecoins are 1:1 with USD
+            if status_callback:
+                status_callback(f"💵 {currency.upper()}: {num_txs} transactions (stablecoin, 1:1 USD)")
             df.loc[mask, 'usd_value'] = df.loc[mask, 'amount']
             df.loc[mask, 'price_at_time'] = 1.0
             df.loc[mask, 'price_source'] = 'stablecoin (1:1)'
-            processed += len(currency_txs)
+            processed += num_txs
             if progress_callback:
                 progress_callback(processed / total_txs)
             continue
@@ -219,8 +226,10 @@ def calculate_usd_values(df: pd.DataFrame, progress_callback=None) -> pd.DataFra
 
         if not coin_id:
             # Unknown currency - mark for manual review
+            if status_callback:
+                status_callback(f"⚠️ {currency.upper()}: {num_txs} transactions (unknown currency, skipping)")
             df.loc[mask, 'price_source'] = 'unknown currency'
-            processed += len(currency_txs)
+            processed += num_txs
             if progress_callback:
                 progress_callback(processed / total_txs)
             continue
@@ -229,18 +238,33 @@ def calculate_usd_values(df: pd.DataFrame, progress_callback=None) -> pd.DataFra
         unique_dates = currency_txs['date_only'].unique()
         date_prices = {}
 
-        for date in unique_dates:
+        if status_callback:
+            status_callback(f"🔄 {currency.upper()}: Fetching prices for {len(unique_dates)} unique dates ({num_txs} transactions)...")
+
+        for i, date in enumerate(unique_dates):
             # Format date for CoinGecko API
             date_str = date.strftime('%d-%m-%Y')
+
+            if status_callback:
+                status_callback(f"🌐 {currency.upper()}: Fetching price for {date_str} ({i+1}/{len(unique_dates)})...")
+
             price = get_historical_price(coin_id, date_str)
 
             if price is not None:
                 date_prices[date] = price
+                if status_callback:
+                    status_callback(f"✅ {currency.upper()} on {date_str}: ${price:,.2f}")
+            else:
+                if status_callback:
+                    status_callback(f"❌ {currency.upper()} on {date_str}: Price not found")
 
             # Small delay to avoid rate limiting
             time.sleep(0.5)
 
         # Apply prices to transactions
+        if status_callback:
+            status_callback(f"📝 {currency.upper()}: Applying prices to {num_txs} transactions...")
+
         for idx in currency_txs.index:
             tx_date = df.loc[idx, 'date_only']
             if tx_date in date_prices:
@@ -254,6 +278,9 @@ def calculate_usd_values(df: pd.DataFrame, progress_callback=None) -> pd.DataFra
             processed += 1
             if progress_callback:
                 progress_callback(processed / total_txs)
+
+    if status_callback:
+        status_callback(f"✅ Done! Processed {processed} transactions.")
 
     return df
 

@@ -783,37 +783,49 @@ if st.session_state.df is not None and len(st.session_state.df) > 0:
                 st.markdown("---")
 
                 if st.button("🔄 Calculate USD Values", type="primary", width='stretch'):
-                    with st.spinner("Fetching historical crypto prices... This may take a moment."):
-                        progress_bar = st.progress(0)
+                    # Create status containers for live updates
+                    progress_bar = st.progress(0)
+                    status_container = st.empty()
+                    log_container = st.container()
+                    log_messages = []
 
-                        def update_progress(pct):
-                            progress_bar.progress(pct)
+                    def update_progress(pct):
+                        progress_bar.progress(min(pct, 1.0))
 
-                        # Calculate USD values for deposits
-                        if len(deposits_df) > 0:
-                            st.text("Processing deposits...")
-                            deposits_df = calculate_usd_values(deposits_df, update_progress)
-                            st.session_state.deposits_df = deposits_df
+                    def update_status(msg):
+                        status_container.info(msg)
+                        log_messages.append(msg)
+                        # Show last 5 log messages
+                        with log_container:
+                            st.text("\n".join(log_messages[-5:]))
 
-                        # Calculate USD values for withdrawals
-                        if len(withdrawals_df) > 0:
-                            st.text("Processing withdrawals...")
-                            withdrawals_df = calculate_usd_values(withdrawals_df, update_progress)
-                            st.session_state.withdrawals_df = withdrawals_df
+                    # Calculate USD values for deposits
+                    if len(deposits_df) > 0:
+                        update_status("📥 Processing DEPOSITS...")
+                        deposits_df = calculate_usd_values(deposits_df, update_progress, update_status)
+                        st.session_state.deposits_df = deposits_df
 
-                        progress_bar.empty()
-                        st.success("✅ USD values calculated!")
+                    # Calculate USD values for withdrawals
+                    if len(withdrawals_df) > 0:
+                        update_status("📤 Processing WITHDRAWALS...")
+                        withdrawals_df = calculate_usd_values(withdrawals_df, update_progress, update_status)
+                        st.session_state.withdrawals_df = withdrawals_df
 
-                        # Calculate summary
-                        if len(deposits_df) > 0 or len(withdrawals_df) > 0:
-                            if len(deposits_df) == 0:
-                                deposits_df = pd.DataFrame({'usd_value': [], 'timestamp': []})
-                            if len(withdrawals_df) == 0:
-                                withdrawals_df = pd.DataFrame({'usd_value': [], 'timestamp': []})
+                    progress_bar.empty()
+                    status_container.empty()
+                    log_container.empty()
+                    st.success("✅ USD values calculated!")
 
-                            st.session_state.wallet_summary = calculate_wallet_summary(
-                                deposits_df, withdrawals_df
-                            )
+                    # Calculate summary
+                    if len(deposits_df) > 0 or len(withdrawals_df) > 0:
+                        if len(deposits_df) == 0:
+                            deposits_df = pd.DataFrame({'usd_value': [], 'timestamp': []})
+                        if len(withdrawals_df) == 0:
+                            withdrawals_df = pd.DataFrame({'usd_value': [], 'timestamp': []})
+
+                        st.session_state.wallet_summary = calculate_wallet_summary(
+                            deposits_df, withdrawals_df
+                        )
 
         # Display results if we have processed data
         if st.session_state.wallet_summary is not None:
