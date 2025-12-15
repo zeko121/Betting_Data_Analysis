@@ -274,46 +274,71 @@ def calculate_wallet_summary(
     """
     summary = {}
 
+    # Handle empty dataframes
+    has_deposits = len(deposits_df) > 0 and 'usd_value' in deposits_df.columns
+    has_withdrawals = len(withdrawals_df) > 0 and 'usd_value' in withdrawals_df.columns
+
     # Total deposits
-    summary['total_deposits_usd'] = deposits_df['usd_value'].sum()
-    summary['total_deposit_count'] = len(deposits_df)
+    summary['total_deposits_usd'] = float(deposits_df['usd_value'].sum()) if has_deposits else 0.0
+    summary['total_deposit_count'] = len(deposits_df) if has_deposits else 0
 
     # Total withdrawals
-    summary['total_withdrawals_usd'] = withdrawals_df['usd_value'].sum()
-    summary['total_withdrawal_count'] = len(withdrawals_df)
+    summary['total_withdrawals_usd'] = float(withdrawals_df['usd_value'].sum()) if has_withdrawals else 0.0
+    summary['total_withdrawal_count'] = len(withdrawals_df) if has_withdrawals else 0
 
     # Net profit (withdrawals - deposits)
     summary['net_profit_usd'] = summary['total_withdrawals_usd'] - summary['total_deposits_usd']
     summary['roi_percentage'] = (
         (summary['net_profit_usd'] / summary['total_deposits_usd'] * 100)
-        if summary['total_deposits_usd'] > 0 else 0
+        if summary['total_deposits_usd'] > 0 else 0.0
     )
 
-    # Breakdown by currency (deposits)
-    deposits_by_currency = deposits_df.groupby('currency').agg({
-        'amount': 'sum',
-        'usd_value': 'sum',
-        'currency': 'count'
-    }).rename(columns={'currency': 'count'})
-    summary['deposits_by_currency'] = deposits_by_currency.to_dict('index')
+    # Breakdown by currency (deposits) - store as simple values, not nested dicts
+    if has_deposits:
+        deposits_by_currency = deposits_df.groupby('currency').agg({
+            'amount': 'sum',
+            'usd_value': 'sum',
+        })
+        deposits_by_currency['count'] = deposits_df.groupby('currency').size()
+        summary['deposit_currencies'] = list(deposits_by_currency.index)
+        summary['deposit_amounts_by_currency'] = deposits_by_currency['amount'].to_dict()
+        summary['deposit_usd_by_currency'] = deposits_by_currency['usd_value'].to_dict()
+    else:
+        summary['deposit_currencies'] = []
+        summary['deposit_amounts_by_currency'] = {}
+        summary['deposit_usd_by_currency'] = {}
 
-    # Breakdown by currency (withdrawals)
-    withdrawals_by_currency = withdrawals_df.groupby('currency').agg({
-        'amount': 'sum',
-        'usd_value': 'sum',
-        'currency': 'count'
-    }).rename(columns={'currency': 'count'})
-    summary['withdrawals_by_currency'] = withdrawals_by_currency.to_dict('index')
+    # Breakdown by currency (withdrawals) - store as simple values, not nested dicts
+    if has_withdrawals:
+        withdrawals_by_currency = withdrawals_df.groupby('currency').agg({
+            'amount': 'sum',
+            'usd_value': 'sum',
+        })
+        withdrawals_by_currency['count'] = withdrawals_df.groupby('currency').size()
+        summary['withdrawal_currencies'] = list(withdrawals_by_currency.index)
+        summary['withdrawal_amounts_by_currency'] = withdrawals_by_currency['amount'].to_dict()
+        summary['withdrawal_usd_by_currency'] = withdrawals_by_currency['usd_value'].to_dict()
+    else:
+        summary['withdrawal_currencies'] = []
+        summary['withdrawal_amounts_by_currency'] = {}
+        summary['withdrawal_usd_by_currency'] = {}
 
     # Date range
-    all_dates = pd.concat([deposits_df['timestamp'], withdrawals_df['timestamp']])
-    if len(all_dates) > 0:
-        summary['first_transaction'] = all_dates.min()
-        summary['last_transaction'] = all_dates.max()
+    date_parts = []
+    if has_deposits and 'timestamp' in deposits_df.columns:
+        date_parts.append(deposits_df['timestamp'])
+    if has_withdrawals and 'timestamp' in withdrawals_df.columns:
+        date_parts.append(withdrawals_df['timestamp'])
+
+    if date_parts:
+        all_dates = pd.concat(date_parts)
+        if len(all_dates) > 0:
+            summary['first_transaction'] = all_dates.min()
+            summary['last_transaction'] = all_dates.max()
 
     # Transactions with missing prices
-    deposits_missing = len(deposits_df[deposits_df['usd_value'] == 0])
-    withdrawals_missing = len(withdrawals_df[withdrawals_df['usd_value'] == 0])
+    deposits_missing = len(deposits_df[deposits_df['usd_value'] == 0]) if has_deposits else 0
+    withdrawals_missing = len(withdrawals_df[withdrawals_df['usd_value'] == 0]) if has_withdrawals else 0
     summary['missing_prices'] = deposits_missing + withdrawals_missing
 
     return summary
@@ -331,21 +356,35 @@ def create_wallet_charts(
 
     charts = {}
 
+    # Check for valid data
+    has_deposits = (deposits_df is not None and len(deposits_df) > 0
+                    and 'timestamp' in deposits_df.columns
+                    and 'usd_value' in deposits_df.columns)
+    has_withdrawals = (withdrawals_df is not None and len(withdrawals_df) > 0
+                       and 'timestamp' in withdrawals_df.columns
+                       and 'usd_value' in withdrawals_df.columns)
+
     # -------------------------------------------------------------------------
     # 1. Deposits vs Withdrawals Over Time
     # -------------------------------------------------------------------------
     fig_timeline = go.Figure()
 
     # Group by month for cleaner visualization
-    deposits_monthly = deposits_df.groupby(
-        deposits_df['timestamp'].dt.to_period('M')
-    )['usd_value'].sum()
-    deposits_monthly.index = deposits_monthly.index.to_timestamp()
+    if has_deposits:
+        deposits_monthly = deposits_df.groupby(
+            deposits_df['timestamp'].dt.to_period('M')
+        )['usd_value'].sum()
+        deposits_monthly.index = deposits_monthly.index.to_timestamp()
+    else:
+        deposits_monthly = pd.Series(dtype=float)
 
-    withdrawals_monthly = withdrawals_df.groupby(
-        withdrawals_df['timestamp'].dt.to_period('M')
-    )['usd_value'].sum()
-    withdrawals_monthly.index = withdrawals_monthly.index.to_timestamp()
+    if has_withdrawals:
+        withdrawals_monthly = withdrawals_df.groupby(
+            withdrawals_df['timestamp'].dt.to_period('M')
+        )['usd_value'].sum()
+        withdrawals_monthly.index = withdrawals_monthly.index.to_timestamp()
+    else:
+        withdrawals_monthly = pd.Series(dtype=float)
 
     fig_timeline.add_trace(go.Bar(
         x=deposits_monthly.index,
@@ -383,24 +422,40 @@ def create_wallet_charts(
     )
 
     # Deposits pie
-    dep_by_curr = deposits_df.groupby('currency')['usd_value'].sum()
-    fig_breakdown.add_trace(go.Pie(
-        labels=dep_by_curr.index,
-        values=dep_by_curr.values,
-        hole=0.4,
-        textinfo='label+percent',
-        hovertemplate='%{label}: $%{value:,.2f}<extra></extra>',
-    ), row=1, col=1)
+    if has_deposits and 'currency' in deposits_df.columns:
+        dep_by_curr = deposits_df.groupby('currency')['usd_value'].sum()
+        fig_breakdown.add_trace(go.Pie(
+            labels=dep_by_curr.index.tolist(),
+            values=dep_by_curr.values.tolist(),
+            hole=0.4,
+            textinfo='label+percent',
+            hovertemplate='%{label}: $%{value:,.2f}<extra></extra>',
+        ), row=1, col=1)
+    else:
+        fig_breakdown.add_trace(go.Pie(
+            labels=['No Data'],
+            values=[1],
+            hole=0.4,
+            textinfo='label',
+        ), row=1, col=1)
 
     # Withdrawals pie
-    wit_by_curr = withdrawals_df.groupby('currency')['usd_value'].sum()
-    fig_breakdown.add_trace(go.Pie(
-        labels=wit_by_curr.index,
-        values=wit_by_curr.values,
-        hole=0.4,
-        textinfo='label+percent',
-        hovertemplate='%{label}: $%{value:,.2f}<extra></extra>',
-    ), row=1, col=2)
+    if has_withdrawals and 'currency' in withdrawals_df.columns:
+        wit_by_curr = withdrawals_df.groupby('currency')['usd_value'].sum()
+        fig_breakdown.add_trace(go.Pie(
+            labels=wit_by_curr.index.tolist(),
+            values=wit_by_curr.values.tolist(),
+            hole=0.4,
+            textinfo='label+percent',
+            hovertemplate='%{label}: $%{value:,.2f}<extra></extra>',
+        ), row=1, col=2)
+    else:
+        fig_breakdown.add_trace(go.Pie(
+            labels=['No Data'],
+            values=[1],
+            hole=0.4,
+            textinfo='label',
+        ), row=1, col=2)
 
     apply_dark_theme(
         fig_breakdown,
@@ -413,10 +468,16 @@ def create_wallet_charts(
     # 3. Cumulative Flow Chart
     # -------------------------------------------------------------------------
     # Combine all transactions
-    all_txs = pd.concat([
-        deposits_df[['timestamp', 'usd_value']].assign(type='deposit'),
-        withdrawals_df[['timestamp', 'usd_value']].assign(type='withdrawal')
-    ]).sort_values('timestamp')
+    tx_parts = []
+    if has_deposits:
+        tx_parts.append(deposits_df[['timestamp', 'usd_value']].assign(type='deposit'))
+    if has_withdrawals:
+        tx_parts.append(withdrawals_df[['timestamp', 'usd_value']].assign(type='withdrawal'))
+
+    if tx_parts:
+        all_txs = pd.concat(tx_parts).sort_values('timestamp')
+    else:
+        all_txs = pd.DataFrame(columns=['timestamp', 'usd_value', 'type'])
 
     if len(all_txs) > 0:
         all_txs['net_value'] = all_txs.apply(
