@@ -240,6 +240,9 @@ def parse_tips_text(text: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
                         except ValueError:
                             parsed_date = datetime.now()
 
+                    # Convert to pandas Timestamp (timezone-naive)
+                    parsed_date = pd.Timestamp(parsed_date)
+
                     tip_entry = {
                         'timestamp': parsed_date,
                         'date_only': parsed_date.date(),
@@ -527,12 +530,20 @@ def calculate_wallet_summary(
         summary['withdrawal_amounts_by_currency'] = {}
         summary['withdrawal_usd_by_currency'] = {}
 
-    # Date range
+    # Date range - normalize timestamps to avoid tz-aware/naive comparison issues
     date_parts = []
     if has_deposits and 'timestamp' in deposits_df.columns:
-        date_parts.append(deposits_df['timestamp'])
+        # Convert to timezone-naive if needed
+        ts = pd.to_datetime(deposits_df['timestamp'])
+        if ts.dt.tz is not None:
+            ts = ts.dt.tz_localize(None)
+        date_parts.append(ts)
     if has_withdrawals and 'timestamp' in withdrawals_df.columns:
-        date_parts.append(withdrawals_df['timestamp'])
+        # Convert to timezone-naive if needed
+        ts = pd.to_datetime(withdrawals_df['timestamp'])
+        if ts.dt.tz is not None:
+            ts = ts.dt.tz_localize(None)
+        date_parts.append(ts)
 
     if date_parts:
         all_dates = pd.concat(date_parts)
