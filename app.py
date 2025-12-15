@@ -349,7 +349,7 @@ with st.sidebar:
             csv,
             "betting_data.csv",
             "text/csv",
-            use_container_width=True,
+            width='stretch',
         )
 
 
@@ -424,7 +424,7 @@ if st.session_state.df is not None and len(st.session_state.df) > 0:
         # Cumulative P&L Chart (full width)
         st.subheader("Cumulative Profit/Loss")
         fig_pnl = create_cumulative_pnl_chart(df)
-        st.plotly_chart(fig_pnl, use_container_width=True)
+        st.plotly_chart(fig_pnl, width='stretch')
 
         # Two column layout
         col1, col2 = st.columns(2)
@@ -432,17 +432,17 @@ if st.session_state.df is not None and len(st.session_state.df) > 0:
         with col1:
             st.subheader("P&L by Game")
             fig_game = create_pnl_by_game_chart(df)
-            st.plotly_chart(fig_game, use_container_width=True)
+            st.plotly_chart(fig_game, width='stretch')
 
         with col2:
             st.subheader("Wagered vs Payouts")
             fig_vs = create_wagered_vs_payout_chart(df)
-            st.plotly_chart(fig_vs, use_container_width=True)
+            st.plotly_chart(fig_vs, width='stretch')
 
         # Daily heatmap
         st.subheader("Daily Performance Heatmap")
         fig_heat = create_daily_heatmap(df)
-        st.plotly_chart(fig_heat, use_container_width=True)
+        st.plotly_chart(fig_heat, width='stretch')
 
         # Insights Section
         st.markdown("---")
@@ -475,7 +475,7 @@ if st.session_state.df is not None and len(st.session_state.df) > 0:
 
         # Game comparison radar
         fig_radar = create_game_comparison_radar(df, stats)
-        st.plotly_chart(fig_radar, use_container_width=True)
+        st.plotly_chart(fig_radar, width='stretch')
 
         # Game breakdown table
         st.subheader("Game Statistics Table")
@@ -483,7 +483,7 @@ if st.session_state.df is not None and len(st.session_state.df) > 0:
         if len(game_table) > 0:
             st.dataframe(
                 game_table,
-                use_container_width=True,
+                width='stretch',
                 hide_index=True,
             )
 
@@ -496,12 +496,12 @@ if st.session_state.df is not None and len(st.session_state.df) > 0:
         if 'plinko' in available_games:
             with st.expander("🎯 Plinko Analysis", expanded=False):
                 fig_plinko = create_plinko_analysis(df)
-                st.plotly_chart(fig_plinko, use_container_width=True)
+                st.plotly_chart(fig_plinko, width='stretch')
 
         if 'keno' in available_games:
             with st.expander("🎱 Keno Analysis", expanded=False):
                 fig_keno = create_keno_analysis(df)
-                st.plotly_chart(fig_keno, use_container_width=True)
+                st.plotly_chart(fig_keno, width='stretch')
 
     # -------------------------------------------------------------------------
     # BEHAVIOR TAB
@@ -515,12 +515,12 @@ if st.session_state.df is not None and len(st.session_state.df) > 0:
         with col1:
             st.markdown("##### Bet Size Distribution")
             fig_dist = create_bet_distribution_chart(df)
-            st.plotly_chart(fig_dist, use_container_width=True)
+            st.plotly_chart(fig_dist, width='stretch')
 
         with col2:
             st.markdown("##### Hourly Patterns")
             fig_hourly = create_hourly_pattern_chart(df)
-            st.plotly_chart(fig_hourly, use_container_width=True)
+            st.plotly_chart(fig_hourly, width='stretch')
 
         st.markdown("---")
 
@@ -531,18 +531,18 @@ if st.session_state.df is not None and len(st.session_state.df) > 0:
         with col1:
             st.markdown("##### Betting Frequency Over Time")
             fig_freq = create_betting_frequency_chart(df)
-            st.plotly_chart(fig_freq, use_container_width=True)
+            st.plotly_chart(fig_freq, width='stretch')
 
         with col2:
             st.markdown("##### Day of Week Performance")
             fig_dow = create_day_of_week_chart(df)
-            st.plotly_chart(fig_dow, use_container_width=True)
+            st.plotly_chart(fig_dow, width='stretch')
 
         st.markdown("---")
 
         st.subheader("Session Analysis")
         fig_session = create_session_analysis_chart(df)
-        st.plotly_chart(fig_session, use_container_width=True)
+        st.plotly_chart(fig_session, width='stretch')
 
         # Session summary
         session_data = get_session_data(df)
@@ -582,43 +582,43 @@ if st.session_state.df is not None and len(st.session_state.df) > 0:
         # Drawdown chart
         st.subheader("Drawdown Analysis")
         fig_drawdown = create_drawdown_chart(df)
-        st.plotly_chart(fig_drawdown, use_container_width=True)
+        st.plotly_chart(fig_drawdown, width='stretch')
 
         col1, col2 = st.columns(2)
 
         with col1:
             st.subheader("Value at Risk")
             fig_var = create_var_chart(df)
-            st.plotly_chart(fig_var, use_container_width=True)
+            st.plotly_chart(fig_var, width='stretch')
 
         with col2:
             st.subheader("Streak Analysis")
             fig_streak = create_streak_chart(stats)
-            st.plotly_chart(fig_streak, use_container_width=True)
+            st.plotly_chart(fig_streak, width='stretch')
 
         st.markdown("---")
 
         st.subheader("Betting Behavior After Results")
         fig_after = create_bet_after_result_chart(df, stats)
-        st.plotly_chart(fig_after, use_container_width=True)
+        st.plotly_chart(fig_after, width='stretch')
 
         col1, col2 = st.columns(2)
 
         with col1:
             st.subheader("Multiplier Distribution")
             fig_mult = create_multiplier_distribution_chart(df)
-            st.plotly_chart(fig_mult, use_container_width=True)
+            st.plotly_chart(fig_mult, width='stretch')
 
         with col2:
             st.subheader("Win Rate Trend")
             fig_wr = create_win_rate_trend_chart(df)
-            st.plotly_chart(fig_wr, use_container_width=True)
+            st.plotly_chart(fig_wr, width='stretch')
 
         # Big wins timeline
         st.subheader("Big Wins Timeline")
         threshold = st.slider("Minimum multiplier", 2.0, 50.0, 5.0, 1.0)
         fig_bigwins = create_big_wins_timeline_chart(df, threshold)
-        st.plotly_chart(fig_bigwins, use_container_width=True)
+        st.plotly_chart(fig_bigwins, width='stretch')
 
     # -------------------------------------------------------------------------
     # DATA TAB
@@ -648,7 +648,7 @@ if st.session_state.df is not None and len(st.session_state.df) > 0:
         # Show dataframe
         st.dataframe(
             display_df,
-            use_container_width=True,
+            width='stretch',
             hide_index=True,
             height=500,
         )
@@ -782,7 +782,7 @@ if st.session_state.df is not None and len(st.session_state.df) > 0:
 
                 st.markdown("---")
 
-                if st.button("🔄 Calculate USD Values", type="primary", use_container_width=True):
+                if st.button("🔄 Calculate USD Values", type="primary", width='stretch'):
                     with st.spinner("Fetching historical crypto prices... This may take a moment."):
                         progress_bar = st.progress(0)
 
@@ -869,20 +869,20 @@ if st.session_state.df is not None and len(st.session_state.df) > 0:
 
                 # ROI Gauge
                 if 'gauge' in charts:
-                    st.plotly_chart(charts['gauge'], use_container_width=True)
+                    st.plotly_chart(charts['gauge'], width='stretch')
 
                 col1, col2 = st.columns(2)
 
                 with col1:
                     if 'timeline' in charts:
-                        st.plotly_chart(charts['timeline'], use_container_width=True)
+                        st.plotly_chart(charts['timeline'], width='stretch')
 
                 with col2:
                     if 'breakdown' in charts:
-                        st.plotly_chart(charts['breakdown'], use_container_width=True)
+                        st.plotly_chart(charts['breakdown'], width='stretch')
 
                 if 'cumulative' in charts:
-                    st.plotly_chart(charts['cumulative'], use_container_width=True)
+                    st.plotly_chart(charts['cumulative'], width='stretch')
 
             # Detailed tables
             st.markdown("---")
@@ -897,7 +897,7 @@ if st.session_state.df is not None and len(st.session_state.df) > 0:
                     display_df = deposits_df[available_cols].copy()
                     display_df['timestamp'] = pd.to_datetime(display_df['timestamp']).dt.strftime('%Y-%m-%d %H:%M')
 
-                    st.dataframe(display_df, use_container_width=True, hide_index=True)
+                    st.dataframe(display_df, width='stretch', hide_index=True)
 
                     # Download button
                     csv = deposits_df.to_csv(index=False)
@@ -917,7 +917,7 @@ if st.session_state.df is not None and len(st.session_state.df) > 0:
                     display_df = withdrawals_df[available_cols].copy()
                     display_df['timestamp'] = pd.to_datetime(display_df['timestamp']).dt.strftime('%Y-%m-%d %H:%M')
 
-                    st.dataframe(display_df, use_container_width=True, hide_index=True)
+                    st.dataframe(display_df, width='stretch', hide_index=True)
 
                     # Download button
                     csv = withdrawals_df.to_csv(index=False)

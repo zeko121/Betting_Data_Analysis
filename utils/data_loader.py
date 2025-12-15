@@ -147,6 +147,8 @@ def extract_game_states(df: pd.DataFrame) -> pd.DataFrame:
         )
         df['plinko_risk'] = plinko_data.apply(lambda x: x.get('risk', None))
         df['plinko_rows'] = plinko_data.apply(lambda x: x.get('rows', None))
+        # Drop the original dict column to avoid hashing issues
+        df = df.drop(columns=['statePlinko'], errors='ignore')
 
     # Keno state
     if 'stateKeno' in df.columns:
@@ -154,15 +156,32 @@ def extract_game_states(df: pd.DataFrame) -> pd.DataFrame:
             lambda x: x if isinstance(x, dict) else {}
         )
         df['keno_risk'] = keno_data.apply(lambda x: x.get('risk', None))
+        # Convert lists to strings for hashability
         df['keno_selected'] = keno_data.apply(
-            lambda x: x.get('selectedNumbers', [])
+            lambda x: ','.join(map(str, x.get('selectedNumbers', [])))
         )
         df['keno_drawn'] = keno_data.apply(
-            lambda x: x.get('drawnNumbers', [])
+            lambda x: ','.join(map(str, x.get('drawnNumbers', [])))
         )
-        df['keno_num_selected'] = df['keno_selected'].apply(
-            lambda x: len(x) if isinstance(x, list) else 0
+        df['keno_num_selected'] = keno_data.apply(
+            lambda x: len(x.get('selectedNumbers', []))
         )
+        # Drop the original dict column to avoid hashing issues
+        df = df.drop(columns=['stateKeno'], errors='ignore')
+
+    # Drop any remaining columns that might contain dicts or lists
+    cols_to_drop = []
+    for col in df.columns:
+        if df[col].dtype == 'object':
+            # Check if column contains dicts or lists
+            sample = df[col].dropna().head(1)
+            if len(sample) > 0:
+                val = sample.iloc[0]
+                if isinstance(val, (dict, list)):
+                    cols_to_drop.append(col)
+
+    if cols_to_drop:
+        df = df.drop(columns=cols_to_drop, errors='ignore')
 
     return df
 

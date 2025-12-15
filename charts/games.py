@@ -105,18 +105,27 @@ def create_keno_analysis(df: pd.DataFrame) -> go.Figure:
     selected_counts = {}
     hit_counts = {}
 
+    def parse_numbers(val):
+        """Parse comma-separated string or list into list of integers."""
+        if isinstance(val, list):
+            return val
+        if isinstance(val, str) and val:
+            try:
+                return [int(x.strip()) for x in val.split(',') if x.strip()]
+            except ValueError:
+                return []
+        return []
+
     for _, row in keno.iterrows():
-        selected = row.get('keno_selected', [])
-        drawn = row.get('keno_drawn', [])
+        selected = parse_numbers(row.get('keno_selected', ''))
+        drawn = parse_numbers(row.get('keno_drawn', ''))
 
-        if isinstance(selected, list):
-            for num in selected:
-                selected_counts[num] = selected_counts.get(num, 0) + 1
+        for num in selected:
+            selected_counts[num] = selected_counts.get(num, 0) + 1
 
-        if isinstance(drawn, list) and isinstance(selected, list):
-            for num in drawn:
-                if num in selected:
-                    hit_counts[num] = hit_counts.get(num, 0) + 1
+        for num in drawn:
+            if num in selected:
+                hit_counts[num] = hit_counts.get(num, 0) + 1
 
     # Selected numbers frequency
     if selected_counts:
