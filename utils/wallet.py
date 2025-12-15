@@ -2,7 +2,7 @@
 
 import pandas as pd
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional
 import requests
 import time
@@ -14,83 +14,86 @@ STABLECOINS = {
     'lusd', 'susd', 'usdd', 'ust', 'mim', 'fei', 'usd'
 }
 
-# CoinGecko ID mapping for common cryptocurrencies
-COINGECKO_IDS = {
-    'btc': 'bitcoin',
-    'bitcoin': 'bitcoin',
-    'eth': 'ethereum',
-    'ethereum': 'ethereum',
-    'doge': 'dogecoin',
-    'dogecoin': 'dogecoin',
-    'ltc': 'litecoin',
-    'litecoin': 'litecoin',
-    'xrp': 'ripple',
-    'ripple': 'ripple',
-    'ada': 'cardano',
-    'cardano': 'cardano',
-    'sol': 'solana',
-    'solana': 'solana',
-    'dot': 'polkadot',
-    'polkadot': 'polkadot',
-    'matic': 'matic-network',
-    'polygon': 'matic-network',
-    'avax': 'avalanche-2',
-    'avalanche': 'avalanche-2',
-    'link': 'chainlink',
-    'chainlink': 'chainlink',
-    'atom': 'cosmos',
-    'cosmos': 'cosmos',
-    'uni': 'uniswap',
-    'uniswap': 'uniswap',
-    'shib': 'shiba-inu',
-    'bnb': 'binancecoin',
-    'trx': 'tron',
-    'tron': 'tron',
-    'xlm': 'stellar',
-    'stellar': 'stellar',
-    'near': 'near',
-    'algo': 'algorand',
-    'ftm': 'fantom',
-    'sand': 'the-sandbox',
-    'mana': 'decentraland',
-    'axs': 'axie-infinity',
-    'ape': 'apecoin',
-    'crv': 'curve-dao-token',
-    'aave': 'aave',
-    'mkr': 'maker',
-    'comp': 'compound-governance-token',
-    'snx': 'havven',
-    'sushi': 'sushi',
-    '1inch': '1inch',
-    'ens': 'ethereum-name-service',
-    'grt': 'the-graph',
-    'ldo': 'lido-dao',
-    'rpl': 'rocket-pool',
-    'op': 'optimism',
-    'arb': 'arbitrum',
-    'pepe': 'pepe',
-    'bonk': 'bonk',
-    'wif': 'dogwifcoin',
+# Binance symbol mapping for common cryptocurrencies
+BINANCE_SYMBOLS = {
+    'btc': 'BTCUSDT',
+    'bitcoin': 'BTCUSDT',
+    'eth': 'ETHUSDT',
+    'ethereum': 'ETHUSDT',
+    'doge': 'DOGEUSDT',
+    'dogecoin': 'DOGEUSDT',
+    'ltc': 'LTCUSDT',
+    'litecoin': 'LTCUSDT',
+    'xrp': 'XRPUSDT',
+    'ripple': 'XRPUSDT',
+    'ada': 'ADAUSDT',
+    'cardano': 'ADAUSDT',
+    'sol': 'SOLUSDT',
+    'solana': 'SOLUSDT',
+    'dot': 'DOTUSDT',
+    'polkadot': 'DOTUSDT',
+    'matic': 'MATICUSDT',
+    'polygon': 'MATICUSDT',
+    'avax': 'AVAXUSDT',
+    'avalanche': 'AVAXUSDT',
+    'link': 'LINKUSDT',
+    'chainlink': 'LINKUSDT',
+    'atom': 'ATOMUSDT',
+    'cosmos': 'ATOMUSDT',
+    'uni': 'UNIUSDT',
+    'uniswap': 'UNIUSDT',
+    'shib': 'SHIBUSDT',
+    'bnb': 'BNBUSDT',
+    'trx': 'TRXUSDT',
+    'tron': 'TRXUSDT',
+    'xlm': 'XLMUSDT',
+    'stellar': 'XLMUSDT',
+    'near': 'NEARUSDT',
+    'algo': 'ALGOUSDT',
+    'ftm': 'FTMUSDT',
+    'sand': 'SANDUSDT',
+    'mana': 'MANAUSDT',
+    'axs': 'AXSUSDT',
+    'ape': 'APEUSDT',
+    'crv': 'CRVUSDT',
+    'aave': 'AAVEUSDT',
+    'mkr': 'MKRUSDT',
+    'snx': 'SNXUSDT',
+    'sushi': 'SUSHIUSDT',
+    '1inch': '1INCHUSDT',
+    'ens': 'ENSUSDT',
+    'grt': 'GRTUSDT',
+    'ldo': 'LDOUSDT',
+    'op': 'OPUSDT',
+    'arb': 'ARBUSDT',
+    'pepe': 'PEPEUSDT',
+    'bonk': 'BONKUSDT',
+    'wif': 'WIFUSDT',
+    'etc': 'ETCUSDT',
+    'bch': 'BCHUSDT',
+    'fil': 'FILUSDT',
+    'apt': 'APTUSDT',
+    'inj': 'INJUSDT',
+    'sei': 'SEIUSDT',
 }
 
 # Fallback average prices by year (rough estimates for when API fails)
-# These are approximate yearly averages - better than nothing!
 FALLBACK_PRICES = {
-    'bitcoin': {2021: 47000, 2022: 28000, 2023: 30000, 2024: 45000, 2025: 95000},
-    'ethereum': {2021: 3000, 2022: 1800, 2023: 1800, 2024: 2500, 2025: 3500},
-    'dogecoin': {2021: 0.15, 2022: 0.08, 2023: 0.07, 2024: 0.12, 2025: 0.35},
-    'litecoin': {2021: 150, 2022: 70, 2023: 80, 2024: 75, 2025: 120},
-    'ripple': {2021: 0.80, 2022: 0.40, 2023: 0.50, 2024: 0.55, 2025: 2.20},
-    'cardano': {2021: 1.50, 2022: 0.40, 2023: 0.35, 2024: 0.45, 2025: 1.00},
-    'solana': {2021: 100, 2022: 30, 2023: 25, 2024: 120, 2025: 220},
-    'binancecoin': {2021: 400, 2022: 300, 2023: 250, 2024: 350, 2025: 700},
-    'matic-network': {2021: 1.50, 2022: 0.90, 2023: 0.80, 2024: 0.70, 2025: 0.50},
-    'polkadot': {2021: 30, 2022: 8, 2023: 6, 2024: 7, 2025: 8},
-    'avalanche-2': {2021: 80, 2022: 20, 2023: 15, 2024: 35, 2025: 45},
-    'chainlink': {2021: 25, 2022: 8, 2023: 10, 2024: 15, 2025: 25},
-    'tron': {2021: 0.08, 2022: 0.06, 2023: 0.08, 2024: 0.12, 2025: 0.25},
-    'stellar': {2021: 0.30, 2022: 0.12, 2023: 0.12, 2024: 0.12, 2025: 0.45},
-    'shiba-inu': {2021: 0.00003, 2022: 0.00001, 2023: 0.000009, 2024: 0.00002, 2025: 0.00002},
+    'BTCUSDT': {2021: 47000, 2022: 28000, 2023: 30000, 2024: 45000, 2025: 95000},
+    'ETHUSDT': {2021: 3000, 2022: 1800, 2023: 1800, 2024: 2500, 2025: 3500},
+    'DOGEUSDT': {2021: 0.15, 2022: 0.08, 2023: 0.07, 2024: 0.12, 2025: 0.35},
+    'LTCUSDT': {2021: 150, 2022: 70, 2023: 80, 2024: 75, 2025: 120},
+    'XRPUSDT': {2021: 0.80, 2022: 0.40, 2023: 0.50, 2024: 0.55, 2025: 2.20},
+    'ADAUSDT': {2021: 1.50, 2022: 0.40, 2023: 0.35, 2024: 0.45, 2025: 1.00},
+    'SOLUSDT': {2021: 100, 2022: 30, 2023: 25, 2024: 120, 2025: 220},
+    'BNBUSDT': {2021: 400, 2022: 300, 2023: 250, 2024: 350, 2025: 700},
+    'MATICUSDT': {2021: 1.50, 2022: 0.90, 2023: 0.80, 2024: 0.70, 2025: 0.50},
+    'DOTUSDT': {2021: 30, 2022: 8, 2023: 6, 2024: 7, 2025: 8},
+    'AVAXUSDT': {2021: 80, 2022: 20, 2023: 15, 2024: 35, 2025: 45},
+    'LINKUSDT': {2021: 25, 2022: 8, 2023: 10, 2024: 15, 2025: 25},
+    'TRXUSDT': {2021: 0.08, 2022: 0.06, 2023: 0.08, 2024: 0.12, 2025: 0.25},
+    'XLMUSDT': {2021: 0.30, 2022: 0.12, 2023: 0.12, 2024: 0.12, 2025: 0.45},
+    'SHIBUSDT': {2021: 0.00003, 2022: 0.00001, 2023: 0.000009, 2024: 0.00002, 2025: 0.00002},
 }
 
 
@@ -156,55 +159,63 @@ def load_wallet_csv(file_content: bytes) -> pd.DataFrame:
     return df
 
 
-def get_historical_price(coin_id: str, date: str, status_callback=None) -> Optional[float]:
+def get_binance_symbol(currency: str) -> Optional[str]:
+    """Get Binance trading pair symbol for a currency."""
+    currency_lower = currency.lower().strip()
+    return BINANCE_SYMBOLS.get(currency_lower)
+
+
+def get_historical_price_binance(symbol: str, date: datetime, status_callback=None) -> Optional[float]:
     """
-    Get historical price for a cryptocurrency on a specific date.
-    Uses CoinGecko API.
+    Get historical price for a cryptocurrency on a specific date using Binance API.
 
     Args:
-        coin_id: CoinGecko coin ID
-        date: Date in DD-MM-YYYY format
+        symbol: Binance trading pair symbol (e.g., 'BTCUSDT')
+        date: datetime object for the date
         status_callback: Optional callback for status updates
 
     Returns:
         Price in USD or None if not found
     """
     try:
-        url = f"https://api.coingecko.com/api/v3/coins/{coin_id}/history"
+        # Convert date to milliseconds timestamp (start of day UTC)
+        start_time = int(datetime(date.year, date.month, date.day).timestamp() * 1000)
+        end_time = start_time + (24 * 60 * 60 * 1000)  # End of day
+
+        url = "https://api.binance.com/api/v3/klines"
         params = {
-            'date': date,
-            'localization': 'false'
+            'symbol': symbol,
+            'interval': '1d',  # Daily candle
+            'startTime': start_time,
+            'endTime': end_time,
+            'limit': 1
         }
 
         if status_callback:
-            status_callback(f"    🌐 API call: {url}?date={date}")
+            status_callback(f"    🌐 Binance API: {symbol} for {date.strftime('%Y-%m-%d')}")
 
-        response = requests.get(url, params=params, timeout=15)
-
-        if status_callback:
-            status_callback(f"    📡 Response status: {response.status_code}")
+        response = requests.get(url, params=params, timeout=10)
 
         if response.status_code == 200:
             data = response.json()
-            if 'market_data' in data and 'current_price' in data['market_data']:
-                price = data['market_data']['current_price'].get('usd')
-                if price:
-                    return price
-                else:
-                    if status_callback:
-                        status_callback(f"    ⚠️ No USD price in response")
+            if data and len(data) > 0:
+                # Kline format: [open_time, open, high, low, close, volume, ...]
+                # Use the close price (index 4)
+                close_price = float(data[0][4])
+                if status_callback:
+                    status_callback(f"    ✅ Got price: ${close_price:,.6f}")
+                return close_price
             else:
                 if status_callback:
-                    status_callback(f"    ⚠️ No market_data in response (API may not have data for this date)")
+                    status_callback(f"    ⚠️ No data returned for this date")
         elif response.status_code == 429:
-            # Rate limited - wait and retry once
             if status_callback:
-                status_callback(f"    ⏳ Rate limited, waiting 5 seconds...")
-            time.sleep(5)
-            return get_historical_price(coin_id, date, None)  # Don't pass callback to avoid spam
+                status_callback(f"    ⏳ Rate limited, waiting 2 seconds...")
+            time.sleep(2)
+            return get_historical_price_binance(symbol, date, None)
         else:
             if status_callback:
-                status_callback(f"    ❌ API error: {response.status_code} - {response.text[:100]}")
+                status_callback(f"    ❌ API error: {response.status_code}")
 
         return None
     except requests.exceptions.Timeout:
@@ -217,16 +228,10 @@ def get_historical_price(coin_id: str, date: str, status_callback=None) -> Optio
         return None
 
 
-def get_coingecko_id(currency: str) -> Optional[str]:
-    """Get CoinGecko ID for a currency symbol."""
-    currency_lower = currency.lower().strip()
-    return COINGECKO_IDS.get(currency_lower)
-
-
-def get_fallback_price(coin_id: str, year: int) -> Optional[float]:
-    """Get fallback price estimate for a coin in a given year."""
-    if coin_id in FALLBACK_PRICES:
-        year_prices = FALLBACK_PRICES[coin_id]
+def get_fallback_price(symbol: str, year: int) -> Optional[float]:
+    """Get fallback price estimate for a symbol in a given year."""
+    if symbol in FALLBACK_PRICES:
+        year_prices = FALLBACK_PRICES[symbol]
         if year in year_prices:
             return year_prices[year]
         # Find closest year
@@ -280,10 +285,10 @@ def calculate_usd_values(df: pd.DataFrame, progress_callback=None, status_callba
                 progress_callback(processed / total_txs)
             continue
 
-        # Get CoinGecko ID
-        coin_id = get_coingecko_id(currency)
+        # Get Binance symbol
+        symbol = get_binance_symbol(currency)
 
-        if not coin_id:
+        if not symbol:
             # Unknown currency - mark for manual review
             if status_callback:
                 status_callback(f"⚠️ {currency.upper()}: {num_txs} transactions (unknown currency, skipping)")
@@ -293,30 +298,32 @@ def calculate_usd_values(df: pd.DataFrame, progress_callback=None, status_callba
                 progress_callback(processed / total_txs)
             continue
 
-        # Use fallback prices (API requires paid key now)
+        # Fetch historical prices from Binance API
         unique_dates = currency_txs['date_only'].unique()
         date_prices = {}
 
         if status_callback:
-            status_callback(f"🔄 {currency.upper()}: Processing {len(unique_dates)} unique dates ({num_txs} transactions)...")
-            status_callback(f"    ℹ️ Using estimated yearly average prices (CoinGecko API requires paid key)")
+            status_callback(f"🔄 {currency.upper()}: Fetching prices for {len(unique_dates)} unique dates ({num_txs} transactions)...")
 
-        # Get fallback prices by year
-        for date in unique_dates:
-            year = date.year
-            fallback = get_fallback_price(coin_id, year)
-            if fallback:
-                date_prices[date] = fallback
+        for i, date in enumerate(unique_dates):
+            if status_callback:
+                status_callback(f"🌐 {currency.upper()}: Fetching price for {date} ({i+1}/{len(unique_dates)})...")
 
-        if date_prices:
-            # Get sample price for logging
-            sample_year = list(unique_dates)[0].year
-            sample_price = get_fallback_price(coin_id, sample_year)
-            if status_callback:
-                status_callback(f"✅ {currency.upper()}: Using ~${sample_price:,.4f} (avg for {sample_year})")
-        else:
-            if status_callback:
-                status_callback(f"⚠️ {currency.upper()}: No fallback prices available")
+            # Try Binance API first
+            price = get_historical_price_binance(symbol, date, status_callback)
+
+            if price is not None:
+                date_prices[date] = price
+            else:
+                # Fall back to yearly estimate
+                fallback = get_fallback_price(symbol, date.year)
+                if fallback:
+                    date_prices[date] = fallback
+                    if status_callback:
+                        status_callback(f"    📊 Using fallback estimate: ${fallback:,.4f}")
+
+            # Small delay to avoid rate limiting
+            time.sleep(0.2)
 
         # Apply prices to transactions
         if status_callback:
@@ -328,7 +335,7 @@ def calculate_usd_values(df: pd.DataFrame, progress_callback=None, status_callba
                 price = date_prices[tx_date]
                 df.loc[idx, 'price_at_time'] = price
                 df.loc[idx, 'usd_value'] = df.loc[idx, 'amount'] * price
-                df.loc[idx, 'price_source'] = f'fallback estimate ({coin_id}, {tx_date.year})'
+                df.loc[idx, 'price_source'] = f'binance ({symbol})'
             else:
                 df.loc[idx, 'price_source'] = 'no price available'
 
