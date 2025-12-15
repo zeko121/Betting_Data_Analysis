@@ -73,6 +73,26 @@ COINGECKO_IDS = {
     'wif': 'dogwifcoin',
 }
 
+# Fallback average prices by year (rough estimates for when API fails)
+# These are approximate yearly averages - better than nothing!
+FALLBACK_PRICES = {
+    'bitcoin': {2021: 47000, 2022: 28000, 2023: 30000, 2024: 45000, 2025: 95000},
+    'ethereum': {2021: 3000, 2022: 1800, 2023: 1800, 2024: 2500, 2025: 3500},
+    'dogecoin': {2021: 0.15, 2022: 0.08, 2023: 0.07, 2024: 0.12, 2025: 0.35},
+    'litecoin': {2021: 150, 2022: 70, 2023: 80, 2024: 75, 2025: 120},
+    'ripple': {2021: 0.80, 2022: 0.40, 2023: 0.50, 2024: 0.55, 2025: 2.20},
+    'cardano': {2021: 1.50, 2022: 0.40, 2023: 0.35, 2024: 0.45, 2025: 1.00},
+    'solana': {2021: 100, 2022: 30, 2023: 25, 2024: 120, 2025: 220},
+    'binancecoin': {2021: 400, 2022: 300, 2023: 250, 2024: 350, 2025: 700},
+    'matic-network': {2021: 1.50, 2022: 0.90, 2023: 0.80, 2024: 0.70, 2025: 0.50},
+    'polkadot': {2021: 30, 2022: 8, 2023: 6, 2024: 7, 2025: 8},
+    'avalanche-2': {2021: 80, 2022: 20, 2023: 15, 2024: 35, 2025: 45},
+    'chainlink': {2021: 25, 2022: 8, 2023: 10, 2024: 15, 2025: 25},
+    'tron': {2021: 0.08, 2022: 0.06, 2023: 0.08, 2024: 0.12, 2025: 0.25},
+    'stellar': {2021: 0.30, 2022: 0.12, 2023: 0.12, 2024: 0.12, 2025: 0.45},
+    'shiba-inu': {2021: 0.00003, 2022: 0.00001, 2023: 0.000009, 2024: 0.00002, 2025: 0.00002},
+}
+
 
 def parse_wallet_date(date_str: str) -> datetime:
     """
@@ -203,6 +223,21 @@ def get_coingecko_id(currency: str) -> Optional[str]:
     return COINGECKO_IDS.get(currency_lower)
 
 
+def get_fallback_price(coin_id: str, year: int) -> Optional[float]:
+    """Get fallback price estimate for a coin in a given year."""
+    if coin_id in FALLBACK_PRICES:
+        year_prices = FALLBACK_PRICES[coin_id]
+        if year in year_prices:
+            return year_prices[year]
+        # Find closest year
+        years = sorted(year_prices.keys())
+        if year < years[0]:
+            return year_prices[years[0]]
+        if year > years[-1]:
+            return year_prices[years[-1]]
+    return None
+
+
 def calculate_usd_values(df: pd.DataFrame, progress_callback=None, status_callback=None) -> pd.DataFrame:
     """
     Calculate USD values for all transactions.
@@ -258,32 +293,30 @@ def calculate_usd_values(df: pd.DataFrame, progress_callback=None, status_callba
                 progress_callback(processed / total_txs)
             continue
 
-        # Fetch historical prices for each unique date
+        # Use fallback prices (API requires paid key now)
         unique_dates = currency_txs['date_only'].unique()
         date_prices = {}
 
         if status_callback:
-            status_callback(f"🔄 {currency.upper()}: Fetching prices for {len(unique_dates)} unique dates ({num_txs} transactions)...")
+            status_callback(f"🔄 {currency.upper()}: Processing {len(unique_dates)} unique dates ({num_txs} transactions)...")
+            status_callback(f"    ℹ️ Using estimated yearly average prices (CoinGecko API requires paid key)")
 
-        for i, date in enumerate(unique_dates):
-            # Format date for CoinGecko API
-            date_str = date.strftime('%d-%m-%Y')
+        # Get fallback prices by year
+        for date in unique_dates:
+            year = date.year
+            fallback = get_fallback_price(coin_id, year)
+            if fallback:
+                date_prices[date] = fallback
 
+        if date_prices:
+            # Get sample price for logging
+            sample_year = list(unique_dates)[0].year
+            sample_price = get_fallback_price(coin_id, sample_year)
             if status_callback:
-                status_callback(f"🌐 {currency.upper()}: Fetching price for {date_str} ({i+1}/{len(unique_dates)})...")
-
-            price = get_historical_price(coin_id, date_str, status_callback)
-
-            if price is not None:
-                date_prices[date] = price
-                if status_callback:
-                    status_callback(f"✅ {currency.upper()} on {date_str}: ${price:,.2f}")
-            else:
-                if status_callback:
-                    status_callback(f"❌ {currency.upper()} on {date_str}: Price not found")
-
-            # Longer delay to avoid rate limiting (CoinGecko free tier is limited)
-            time.sleep(1.5)
+                status_callback(f"✅ {currency.upper()}: Using ~${sample_price:,.4f} (avg for {sample_year})")
+        else:
+            if status_callback:
+                status_callback(f"⚠️ {currency.upper()}: No fallback prices available")
 
         # Apply prices to transactions
         if status_callback:
@@ -295,9 +328,9 @@ def calculate_usd_values(df: pd.DataFrame, progress_callback=None, status_callba
                 price = date_prices[tx_date]
                 df.loc[idx, 'price_at_time'] = price
                 df.loc[idx, 'usd_value'] = df.loc[idx, 'amount'] * price
-                df.loc[idx, 'price_source'] = f'coingecko ({coin_id})'
+                df.loc[idx, 'price_source'] = f'fallback estimate ({coin_id}, {tx_date.year})'
             else:
-                df.loc[idx, 'price_source'] = 'price not found'
+                df.loc[idx, 'price_source'] = 'no price available'
 
             processed += 1
             if progress_callback:
