@@ -136,8 +136,7 @@ def load_wallet_csv(file_content: bytes) -> pd.DataFrame:
     return df
 
 
-@st.cache_data(ttl=3600)  # Cache for 1 hour
-def get_historical_price(coin_id: str, date: str) -> Optional[float]:
+def get_historical_price(coin_id: str, date: str, status_callback=None) -> Optional[float]:
     """
     Get historical price for a cryptocurrency on a specific date.
     Uses CoinGecko API.
@@ -145,6 +144,7 @@ def get_historical_price(coin_id: str, date: str) -> Optional[float]:
     Args:
         coin_id: CoinGecko coin ID
         date: Date in DD-MM-YYYY format
+        status_callback: Optional callback for status updates
 
     Returns:
         Price in USD or None if not found
@@ -156,20 +156,44 @@ def get_historical_price(coin_id: str, date: str) -> Optional[float]:
             'localization': 'false'
         }
 
-        response = requests.get(url, params=params, timeout=10)
+        if status_callback:
+            status_callback(f"    🌐 API call: {url}?date={date}")
+
+        response = requests.get(url, params=params, timeout=15)
+
+        if status_callback:
+            status_callback(f"    📡 Response status: {response.status_code}")
 
         if response.status_code == 200:
             data = response.json()
             if 'market_data' in data and 'current_price' in data['market_data']:
-                return data['market_data']['current_price'].get('usd')
+                price = data['market_data']['current_price'].get('usd')
+                if price:
+                    return price
+                else:
+                    if status_callback:
+                        status_callback(f"    ⚠️ No USD price in response")
+            else:
+                if status_callback:
+                    status_callback(f"    ⚠️ No market_data in response (API may not have data for this date)")
         elif response.status_code == 429:
-            # Rate limited - wait and retry
-            time.sleep(2)
-            return get_historical_price(coin_id, date)
+            # Rate limited - wait and retry once
+            if status_callback:
+                status_callback(f"    ⏳ Rate limited, waiting 5 seconds...")
+            time.sleep(5)
+            return get_historical_price(coin_id, date, None)  # Don't pass callback to avoid spam
+        else:
+            if status_callback:
+                status_callback(f"    ❌ API error: {response.status_code} - {response.text[:100]}")
 
         return None
+    except requests.exceptions.Timeout:
+        if status_callback:
+            status_callback(f"    ⏱️ Request timed out")
+        return None
     except Exception as e:
-        st.warning(f"Error fetching price for {coin_id} on {date}: {e}")
+        if status_callback:
+            status_callback(f"    ❌ Exception: {str(e)}")
         return None
 
 
@@ -248,7 +272,7 @@ def calculate_usd_values(df: pd.DataFrame, progress_callback=None, status_callba
             if status_callback:
                 status_callback(f"🌐 {currency.upper()}: Fetching price for {date_str} ({i+1}/{len(unique_dates)})...")
 
-            price = get_historical_price(coin_id, date_str)
+            price = get_historical_price(coin_id, date_str, status_callback)
 
             if price is not None:
                 date_prices[date] = price
@@ -258,8 +282,8 @@ def calculate_usd_values(df: pd.DataFrame, progress_callback=None, status_callba
                 if status_callback:
                     status_callback(f"❌ {currency.upper()} on {date_str}: Price not found")
 
-            # Small delay to avoid rate limiting
-            time.sleep(0.5)
+            # Longer delay to avoid rate limiting (CoinGecko free tier is limited)
+            time.sleep(1.5)
 
         # Apply prices to transactions
         if status_callback:

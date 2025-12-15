@@ -785,19 +785,19 @@ if st.session_state.df is not None and len(st.session_state.df) > 0:
                 if st.button("🔄 Calculate USD Values", type="primary", width='stretch'):
                     # Create status containers for live updates
                     progress_bar = st.progress(0)
-                    status_container = st.empty()
-                    log_container = st.container()
+                    status_text = st.empty()
+                    log_area = st.empty()
                     log_messages = []
 
                     def update_progress(pct):
                         progress_bar.progress(min(pct, 1.0))
 
                     def update_status(msg):
-                        status_container.info(msg)
                         log_messages.append(msg)
-                        # Show last 5 log messages
-                        with log_container:
-                            st.text("\n".join(log_messages[-5:]))
+                        # Show current status
+                        status_text.info(f"**Current:** {msg}")
+                        # Show last 10 log messages in a code block (prevents duplication)
+                        log_area.code("\n".join(log_messages[-10:]), language=None)
 
                     # Calculate USD values for deposits
                     if len(deposits_df) > 0:
@@ -812,8 +812,8 @@ if st.session_state.df is not None and len(st.session_state.df) > 0:
                         st.session_state.withdrawals_df = withdrawals_df
 
                     progress_bar.empty()
-                    status_container.empty()
-                    log_container.empty()
+                    status_text.empty()
+                    log_area.empty()
                     st.success("✅ USD values calculated!")
 
                     # Calculate summary
