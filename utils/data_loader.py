@@ -7,7 +7,6 @@ from typing import List, Dict, Any, Union
 import streamlit as st
 
 
-@st.cache_data
 def load_json_data(file_contents: Union[bytes, str]) -> pd.DataFrame:
     """
     Load betting data from JSON content.
@@ -37,7 +36,6 @@ def load_json_data(file_contents: Union[bytes, str]) -> pd.DataFrame:
     return pd.DataFrame(bets)
 
 
-@st.cache_data
 def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     """
     Process raw betting data into analysis-ready format.
