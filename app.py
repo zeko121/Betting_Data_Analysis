@@ -20,6 +20,7 @@ from utils.wallet import (
     calculate_usd_values,
     calculate_wallet_summary,
     create_wallet_charts,
+    parse_tips_text,
     STABLECOINS,
 )
 
@@ -195,6 +196,11 @@ if 'withdrawals_df' not in st.session_state:
     st.session_state.withdrawals_df = None
 if 'wallet_summary' not in st.session_state:
     st.session_state.wallet_summary = None
+# Tips session state
+if 'tips_received_df' not in st.session_state:
+    st.session_state.tips_received_df = None
+if 'tips_sent_df' not in st.session_state:
+    st.session_state.tips_sent_df = None
 
 
 # =============================================================================
@@ -731,32 +737,101 @@ if st.session_state.df is not None and len(st.session_state.df) > 0:
                 help="CSV with columns: date, amount, currency, hash, address"
             )
 
+        # Tips section
+        st.markdown("---")
+        with st.expander("🎁 Tips (Copy & Paste from Stake.com)", expanded=False):
+            st.markdown("""
+            **How to use:** Go to your Stake.com wallet → Tips → Select all the tips data from the table and paste it below.
+
+            The parser will automatically detect **Tips Received** (adds to deposits) and **Tips Sent** (adds to withdrawals).
+            """)
+
+            tips_text = st.text_area(
+                "Paste your tips data here",
+                height=200,
+                placeholder="Date\tType\tReceived from\tAmount\n2:03 PM 11/23/2025\tTips Received\t\nTomas1262\n$20.00\n...",
+                key='tips_text_area'
+            )
+
+            if st.button("📋 Parse Tips", type="secondary"):
+                if tips_text.strip():
+                    try:
+                        tips_received, tips_sent = parse_tips_text(tips_text)
+
+                        if len(tips_received) > 0 or len(tips_sent) > 0:
+                            st.session_state.tips_received_df = tips_received
+                            st.session_state.tips_sent_df = tips_sent
+
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.success(f"✅ Found {len(tips_received)} tips received (${tips_received['usd_value'].sum():,.2f})" if len(tips_received) > 0 else "No tips received found")
+                            with col2:
+                                st.success(f"✅ Found {len(tips_sent)} tips sent (${tips_sent['usd_value'].sum():,.2f})" if len(tips_sent) > 0 else "No tips sent found")
+
+                            # Show preview
+                            if len(tips_received) > 0:
+                                st.markdown("**Tips Received Preview:**")
+                                preview_cols = ['timestamp', 'username', 'usd_value']
+                                st.dataframe(tips_received[preview_cols].head(5), hide_index=True)
+
+                            if len(tips_sent) > 0:
+                                st.markdown("**Tips Sent Preview:**")
+                                preview_cols = ['timestamp', 'username', 'usd_value']
+                                st.dataframe(tips_sent[preview_cols].head(5), hide_index=True)
+                        else:
+                            st.warning("No tips found. Make sure you copied the full tips table from Stake.com")
+                    except Exception as e:
+                        st.error(f"Error parsing tips: {e}")
+                else:
+                    st.warning("Please paste your tips data first")
+
+        # Check if we have any data to process (files or tips)
+        has_tips = (st.session_state.tips_received_df is not None and len(st.session_state.tips_received_df) > 0) or \
+                   (st.session_state.tips_sent_df is not None and len(st.session_state.tips_sent_df) > 0)
+
         # Process uploaded files
-        if deposits_file or withdrawals_file:
+        if deposits_file or withdrawals_file or has_tips:
             st.markdown("---")
 
-            # Load deposits
+            # Load deposits from CSV
             if deposits_file:
                 try:
                     deposits_df = load_wallet_csv(deposits_file.read())
-                    st.success(f"✅ Loaded {len(deposits_df)} deposits")
+                    st.success(f"✅ Loaded {len(deposits_df)} deposits from CSV")
                 except Exception as e:
                     st.error(f"Error loading deposits: {e}")
                     deposits_df = pd.DataFrame()
             else:
                 deposits_df = pd.DataFrame()
 
-            # Load withdrawals
+            # Load withdrawals from CSV
             if withdrawals_file:
                 try:
                     withdrawals_file.seek(0)  # Reset file pointer
                     withdrawals_df = load_wallet_csv(withdrawals_file.read())
-                    st.success(f"✅ Loaded {len(withdrawals_df)} withdrawals")
+                    st.success(f"✅ Loaded {len(withdrawals_df)} withdrawals from CSV")
                 except Exception as e:
                     st.error(f"Error loading withdrawals: {e}")
                     withdrawals_df = pd.DataFrame()
             else:
                 withdrawals_df = pd.DataFrame()
+
+            # Merge tips with deposits/withdrawals
+            if st.session_state.tips_received_df is not None and len(st.session_state.tips_received_df) > 0:
+                tips_received = st.session_state.tips_received_df
+                if len(deposits_df) > 0:
+                    deposits_df = pd.concat([deposits_df, tips_received], ignore_index=True)
+                else:
+                    deposits_df = tips_received.copy()
+                st.info(f"🎁 Added {len(tips_received)} tips received to deposits")
+
+            if st.session_state.tips_sent_df is not None and len(st.session_state.tips_sent_df) > 0:
+                tips_sent = st.session_state.tips_sent_df
+                if len(withdrawals_df) > 0:
+                    withdrawals_df = pd.concat([withdrawals_df, tips_sent], ignore_index=True)
+                else:
+                    withdrawals_df = tips_sent.copy()
+                st.info(f"🎁 Added {len(tips_sent)} tips sent to withdrawals")
 
             # Calculate USD values button
             if len(deposits_df) > 0 or len(withdrawals_df) > 0:

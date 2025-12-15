@@ -8,6 +8,8 @@ import requests
 import time
 import streamlit as st
 
+import re
+
 # Stablecoins that are 1:1 with USD (no conversion needed)
 STABLECOINS = {
     'usdt', 'usdc', 'busd', 'dai', 'tusd', 'usdp', 'gusd', 'frax',
@@ -157,6 +159,117 @@ def load_wallet_csv(file_content: bytes) -> pd.DataFrame:
     df = df.sort_values('timestamp').reset_index(drop=True)
 
     return df
+
+
+def parse_tips_text(text: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Parse copy-pasted tips data from stake.com.
+
+    Args:
+        text: Raw text copied from stake.com tips table
+
+    Returns:
+        Tuple of (tips_received_df, tips_sent_df)
+    """
+    tips_received = []
+    tips_sent = []
+
+    # Clean up the text - normalize line endings
+    text = text.replace('\r\n', '\n').replace('\r', '\n')
+
+    # Split into lines
+    lines = text.split('\n')
+
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+
+        # Skip empty lines and headers
+        if not line or line.startswith('Date') or line == 'Type' or line == 'Amount':
+            i += 1
+            continue
+
+        # Look for a date/time pattern followed by "Tips Received" or "Tips Sent"
+        # Format: "2:03 PM 11/23/2025\tTips Received" or similar
+
+        # Check if line contains Tips Received or Tips Sent
+        if 'Tips Received' in line or 'Tips Sent' in line:
+            is_received = 'Tips Received' in line
+
+            # Extract date/time from the beginning of the line
+            # Pattern: time (AM/PM) date
+            date_match = re.search(r'(\d{1,2}:\d{2}\s*[AP]M)\s*(\d{1,2}/\d{1,2}/\d{4})', line)
+
+            if date_match:
+                time_str = date_match.group(1)
+                date_str = date_match.group(2)
+                datetime_str = f"{date_str} {time_str}"
+
+                # Look for username and amount in next lines
+                username = None
+                amount = None
+
+                # Check next few lines for username and amount
+                for j in range(1, 4):
+                    if i + j < len(lines):
+                        next_line = lines[i + j].strip()
+
+                        # Skip "Received from" or "Sent to" headers
+                        if next_line in ['Received from', 'Sent to']:
+                            continue
+
+                        # Check for amount (starts with $ or -$)
+                        amount_match = re.search(r'-?\$[\d,]+\.?\d*', next_line)
+                        if amount_match:
+                            amount_str = amount_match.group()
+                            # Parse amount - remove $ and commas
+                            amount = float(amount_str.replace('$', '').replace(',', ''))
+                            i = i + j
+                            break
+                        elif next_line and not amount_match and username is None:
+                            # This is probably the username
+                            username = next_line
+
+                if amount is not None:
+                    # Parse the datetime
+                    try:
+                        parsed_date = datetime.strptime(datetime_str, "%m/%d/%Y %I:%M %p")
+                    except ValueError:
+                        try:
+                            parsed_date = datetime.strptime(datetime_str, "%m/%d/%Y %I:%M%p")
+                        except ValueError:
+                            parsed_date = datetime.now()
+
+                    tip_entry = {
+                        'timestamp': parsed_date,
+                        'date_only': parsed_date.date(),
+                        'username': username or 'Unknown',
+                        'amount': abs(amount),
+                        'currency': 'usd',
+                        'usd_value': abs(amount),
+                        'price_at_time': 1.0,
+                        'price_source': 'USD (tips)',
+                        'is_stablecoin': True,
+                    }
+
+                    if is_received:
+                        tips_received.append(tip_entry)
+                    else:
+                        tips_sent.append(tip_entry)
+
+        i += 1
+
+    # Create DataFrames
+    received_df = pd.DataFrame(tips_received) if tips_received else pd.DataFrame()
+    sent_df = pd.DataFrame(tips_sent) if tips_sent else pd.DataFrame()
+
+    # Sort by timestamp
+    if len(received_df) > 0:
+        received_df = received_df.sort_values('timestamp').reset_index(drop=True)
+    if len(sent_df) > 0:
+        sent_df = sent_df.sort_values('timestamp').reset_index(drop=True)
+
+    return received_df, sent_df
 
 
 def get_binance_symbol(currency: str) -> Optional[str]:
